@@ -81,3 +81,9 @@
     color: #000000;
     padding: 5px;
 }
+
+.p-written {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #333;
+}
