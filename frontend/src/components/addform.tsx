@@ -1,40 +1,36 @@
 import React, { useState } from "react";
-// import { useNavigate } from "react-router";
 import "./formstyle.css"; // Import external stylesheet
 
+// Create an interface for the book object
+interface Book {
+  id: number;
+  title: string;
+  genre: string;
+  status: string;
+}
+
 const Addbookform: React.FC = () => {
-  const [formData, setFormData] = useState({
+  // State to store the book data
+  const [addBook, setAddBook] = useState({
     title: "",
     genre: "",
     status: "",
   });
 
-  // const navigate = useNavigate();
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  // Function to handle form submission
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    // Create a new object with empty fields
-
-    const sanitizedFormData = Object.entries(formData).reduce(
-      (acc, [key, value]) => {
-        if (value) acc[key] = value;
-        return acc;
-      },
-      {} as { [key: string]: string }
-    );
-
-    // Save sanitizedFormData to local storage
-    const existingData = JSON.parse(localStorage.getItem("formData") || "[]");
-    existingData.push(sanitizedFormData);
-    localStorage.setItem("formData", JSON.stringify(existingData));
-    // navigate("/update-book"); // Navigate to the updae book page
+    const books: Book[] = JSON.parse(localStorage.getItem("books") || "[]");
+    const newBook: Book = {
+      id: books.length + 1,
+      title: addBook.title,
+      genre: addBook.genre,
+      status: addBook.status,
+    };
+    books.push(newBook);
+    localStorage.setItem("books", JSON.stringify(books));
+    setAddBook({ title: "", genre: "", status: "" });
+    alert("Book added successfully!");
   };
 
   return (
@@ -44,8 +40,8 @@ const Addbookform: React.FC = () => {
         <input
           type="text"
           name="title"
-          value={formData.title}
-          onChange={handleChange}
+          value={addBook.title}
+          onChange={(e) => setAddBook({ ...addBook, title: e.target.value })}
         />
       </div>
       <div className="form-group">
@@ -53,20 +49,24 @@ const Addbookform: React.FC = () => {
         <input
           type="text"
           name="genre"
-          value={formData.genre}
-          onChange={handleChange}
+          value={addBook.genre}
+          onChange={(e) => setAddBook({ ...addBook, genre: e.target.value })}
         />
       </div>
       <div className="form-group">
         <label htmlFor="title">Status:</label>
-        <select name="status" value={formData.status} onChange={handleChange}>
+        <select
+          name="status"
+          value={addBook.status}
+          onChange={(e) => setAddBook({ ...addBook, status: e.target.value })}
+        >
           <option value=""></option>
-          <option value="unread">Unread</option>
-          <option value="read">Read</option>
+          <option value="on-loan">on-loan</option>
+          <option value="available">available</option>
         </select>
       </div>
       <p></p>
-      <p className="p-written">You have chosen {formData.status}</p>
+      <p className="p-written">You have chosen {addBook.status}</p>
       <button type="submit">Add Book</button>
     </form>
   );

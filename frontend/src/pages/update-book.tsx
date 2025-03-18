@@ -1,116 +1,188 @@
 import React, { useEffect, useState } from "react";
 
-const Updatebook: React.FC = () => {
-  const [tableData, setTableData] = useState<
-    Array<{ title: string; genre: string; status: string }>
-  >([]);
-  const [editIndex, setEditIndex] = useState<number | null>(null); // Track the row being edited
-  const [editedRow, setEditedRow] = useState<{
-    title: string;
-    genre: string;
-    status: string;
-  } | null>(null);
+// Create a book interface
+interface Book {
+  id: number;
+  title: string;
+  genre: string;
+  status: string;
+}
 
+const Updatebook: React.FC = () => {
+  // Use state to store the books
+  const [books, setBooks] = useState<Book[]>([]);
+  // Use state for editing
+  const [isEditing, setIsEditing] = useState<number | null>(null);
+  const [editBook, setEditBook] = useState<Book | null>(null);
+
+  // set for specific columns to filter
+  // States for specific column filters
+  const [titleFilter, setTitleFilter] = useState("");
+  const [genreFilter, setGenreFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+
+  // and now for pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const booksPerPage = 5;
+
+  // Use effect to get the books from local storage
   useEffect(() => {
-    const data = JSON.parse(localStorage.getItem("formData") || "[]");
-    setTableData(data);
+    const storedBooks: Book[] = JSON.parse(
+      localStorage.getItem("books") || "[]"
+    );
+    setBooks(storedBooks);
   }, []);
 
-  const handleEdit = (index: number) => {
-    setEditIndex(index);
-    setEditedRow({ ...tableData[index] });
-  };
+  // Filter the books based on the search
+  const filteredBooks = books.filter((book) => {
+    const matchesTitle = book.title
+      .toLowerCase()
+      .includes(titleFilter.toLowerCase());
+    const matchesGenre = book.genre
+      .toLowerCase()
+      .includes(genreFilter.toLowerCase());
+    const matchesStatus = book.status
+      .toLowerCase()
+      .includes(statusFilter.toLowerCase());
+    return matchesTitle && matchesGenre && matchesStatus;
+  });
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    if (editedRow) {
-      setEditedRow({ ...editedRow, [e.target.name]: e.target.value });
+  // caluclate the books to display based on the current page
+  const indexOfLastBook = currentPage * booksPerPage;
+  const indexOfFirstBook = indexOfLastBook - booksPerPage;
+  const currentBooks = filteredBooks.slice(indexOfFirstBook, indexOfLastBook);
+
+  const handleNextPage = () => {
+    if (currentPage < Math.ceil(filteredBooks.length / booksPerPage)) {
+      setCurrentPage(currentPage + 1);
     }
   };
 
-  const handleSave = (index: number) => {
-    if (editedRow) {
-      const updatedData = [...tableData];
-      updatedData[index] = editedRow;
-      setTableData(updatedData);
-      localStorage.setItem("formData", JSON.stringify(updatedData)); // Save the updated data
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
     }
-    setEditIndex(null);
-    setEditedRow(null);
   };
 
-  const handleDelete = (index: number) => {
-    const updatedData = [...tableData];
-    updatedData.splice(index, 1);
-    setTableData(updatedData);
-    localStorage.setItem("formData", JSON.stringify(updatedData));
+  const handleEdit = (book: Book) => {
+    setIsEditing(book.id);
+    setEditBook(book);
   };
 
-  const handleCancel = () => {
-    setEditIndex(null);
-    setEditedRow(null);
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (editBook) {
+      setEditBook({
+        ...editBook,
+        [e.target.name]: e.target.value,
+      });
+    }
+  };
+
+  const handleUpdate = () => {
+    if (editBook) {
+      const updatedBooks = books.map((book) =>
+        book.id === editBook.id ? editBook : book
+      );
+      setBooks(updatedBooks);
+      localStorage.setItem("books", JSON.stringify(updatedBooks));
+      setIsEditing(null);
+      setEditBook(null);
+    }
+  };
+
+  const handleDelete = (id: number) => {
+    const updatedData = books.filter((book) => book.id !== id);
+    setBooks(updatedData);
+    localStorage.setItem("books", JSON.stringify(updatedData));
   };
 
   return (
     <>
-      <h2 className="h2-title">Update or Delete a book</h2>
+      {/* Filter inputs */}
+      <div style={{ marginBottom: "10px" }}>
+        <input
+          type="text"
+          placeholder="Filter by title"
+          value={titleFilter}
+          onChange={(e) => setTitleFilter(e.target.value)}
+          style={{ marginRight: "10px", padding: "5px" }}
+        />
+        <input
+          type="text"
+          placeholder="Filter by genre"
+          value={genreFilter}
+          onChange={(e) => setGenreFilter(e.target.value)}
+          style={{ marginRight: "10px", padding: "5px" }}
+        />
+        <input
+          type="text"
+          placeholder="Filter by status"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          style={{ marginRight: "10px", padding: "5px" }}
+        />
+      </div>
       <div className="table_component">
         <table>
           <thead>
             <tr>
-              <th>Book Title</th>
+              <th>ID</th>
+              <th>Title</th>
               <th>Genre</th>
               <th>Status</th>
+              <th>Update</th>
+              <th>Delete</th>
             </tr>
           </thead>
           <tbody>
-            {tableData.map((item, index) => (
-              <tr key={index}>
-                {editIndex === index ? (
+            {currentBooks.map((book) => (
+              <tr key={book.id}>
+                {isEditing === book.id ? (
                   <>
+                    <td>{book.id}</td>
                     <td>
                       <input
                         type="text"
                         name="title"
-                        value={editedRow?.title || ""}
-                        onChange={handleChange}
+                        value={editBook?.title || ""}
+                        onChange={handleEditChange}
+                        className="table_input"
                       />
                     </td>
                     <td>
                       <input
                         type="text"
                         name="genre"
-                        value={editedRow?.genre || ""}
-                        onChange={handleChange}
+                        value={editBook?.genre || ""}
+                        onChange={handleEditChange}
                       />
                     </td>
                     <td>
-                      <select
+                      <input
+                        type="text"
                         name="status"
-                        value={editedRow?.status || ""}
-                        onChange={handleChange}
-                      >
-                        <option value="" disabled>
-                          Select an option
-                        </option>
-                        <option value="read">Read</option>
-                        <option value="unread">Unread</option>
-                      </select>
+                        value={editBook?.status || ""}
+                        onChange={handleEditChange}
+                      />
                     </td>
                     <td>
-                      <button onClick={() => handleSave(index)}>Save</button>
-                      <button onClick={handleCancel}>Cancel</button>
+                      <button onClick={handleUpdate}>Save</button>
+                    </td>
+                    <td>
+                      <button onClick={() => setIsEditing(null)}>Cancel</button>
                     </td>
                   </>
                 ) : (
                   <>
-                    <td>{item.title}</td>
-                    <td>{item.genre}</td>
-                    <td>{item.status}</td>
+                    <td>{book.id}</td>
+                    <td>{book.title}</td>
+                    <td>{book.genre}</td>
+                    <td>{book.status}</td>
                     <td>
-                      <button onClick={() => handleEdit(index)}>Edit</button>
-                      <button onClick={() => handleDelete(index)}>
+                      <button onClick={() => handleEdit(book)}>Update</button>
+                    </td>
+                    <td>
+                      <button onClick={() => handleDelete(book.id)}>
                         Delete
                       </button>
                     </td>
@@ -120,6 +192,45 @@ const Updatebook: React.FC = () => {
             ))}
           </tbody>
         </table>
+      </div>
+      {/* Pagination Controls */}
+      <div style={{ textAlign: "center", margin: "20px 0" }}>
+        <a
+          href="#"
+          onClick={(e) => {
+            e.preventDefault(); // Prevent default link behavior
+            handlePreviousPage();
+          }}
+          style={{
+            color: currentPage === 1 ? "gray" : "blue",
+            pointerEvents: currentPage === 1 ? "none" : "auto",
+            margin: "0 10px",
+          }}
+        >
+          Previous
+        </a>
+        <span style={{ margin: "0 10px" }}>
+          Page {currentPage} of {Math.ceil(books.length / booksPerPage)}
+        </span>
+        <a
+          href="#"
+          onClick={(e) => {
+            e.preventDefault(); // Prevent default link behavior
+            handleNextPage();
+          }}
+          style={{
+            color:
+              currentPage === Math.ceil(books.length / booksPerPage)
+                ? "gray"
+                : "blue",
+            pointerEvents:
+              currentPage === Math.ceil(books.length / booksPerPage)
+                ? "none"
+                : "auto",
+          }}
+        >
+          Next
+        </a>
       </div>
     </>
   );
